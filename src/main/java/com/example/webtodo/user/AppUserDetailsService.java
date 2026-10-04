@@ -1,7 +1,6 @@
 package com.example.webtodo.user;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -19,11 +18,6 @@ public class AppUserDetailsService implements UserDetailsService {
         AppUser user = repository
             .findByEmail(UserService.normalizeEmail(email))
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return User.builder()
-            .username(user.getEmail())
-            .password(user.getPassword())
-            .disabled(!user.isEnabled())
-            .roles("USER")
-            .build();
+        return new AppUserPrincipal(user);
     }
 }

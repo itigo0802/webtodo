@@ -1,0 +1,28 @@
+<header th:fragment="navbar">
+    <nav>
+        <ul>
+            <li>
+                <a th:href="@{/todos}"><strong>TODOアプリ</strong></a>
+            </li>
+        </ul>
+        <ul>
+            <li><a th:href="@{/todos}">ホーム</a></li>
+        </ul>
+        <ul>
+            <li>
+                <details>
+                    <summary>
+                        <span sec:authentication="name"></span>さん
+                    </summary>
+                    <ul>
+                        <li>
+                            <form th:action="@{/logout}" method="post">
+                                <button type="submit">ログアウト</button>
+                            </form>
+                        </li>
+                    </ul>
+                </details>
+            </li>
+        </ul>
+    </nav>
+</header>
