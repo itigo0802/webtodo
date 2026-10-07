@@ -76,15 +76,15 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - [x] 1. Flyway: `V1__create_users`、`V2__create_todos`
 - [x] 2. user: `AppUser` / `UserRepository` / `AppUserDetailsService` / `UserService` / `RegisterForm` / `AuthController`
 - [x] 3. `SecurityConfig`、`login.html`、`register.html`、`fragments/head.html`(登録・ログインは動作確認済み)
-- [x] 4. todo: `Todo` / `TodoRepository` / `TodoForm` / `TodoNotFoundException` / `TodoService`、`AppUserPrincipal`(ログインユーザーIDを保持)
-- [ ] 5. Controller・画面: 一覧 `GET /todos`(実装済み・動作確認済み)。追加は `TodoController` まで実装済みで、次は `templates/todo/form.html`。残りは編集、`POST /todos/{id}/toggle`、削除、期限切れの強調表示
+- [x] 4. todo: `Todo` / `TodoRepository` / `TodoForm` / `TodoNotFoundException` / `TodoService`、`AppUserPrincipal`(ログインユーザーIDとニックネームを保持)
+- [ ] 5. Controller・画面: 一覧 `GET /todos`(実装済み・動作確認済み)。追加 `GET/POST /todos/new`・`form.html`(動作確認済み)、ナビのニックネーム表示(`principal.name`)も実装済み。残りは編集、`POST /todos/{id}/toggle`、削除、期限切れの強調表示
 - [ ] 6. テスト
 
 ### 未解決・メモ
 
-- 追加のパスは現在 `/todo/new`(`TodoController`)。他の画面に合わせて `/todos/new` に直す(`form.html` の `th:action` と一覧のリンクも同じパスにそろえる)
 - 一覧のチェックボックスはトグル実装まで `disabled` にする。`<main>` に `class="container"` を付ける
 - ログインユーザーIDは `@AuthenticationPrincipal AppUserPrincipal` から `getId()` で取る。`@WebMvcTest` では `@WithMockUser` ではなく `AppUserPrincipal` を渡す(`SecurityMockMvcRequestPostProcessors.user(...)` など)
-- ナビのログイン名は現在 email(`sec:authentication="name"`)。ニックネーム表示にするには `AppUserPrincipal` に `name` を持たせ、`principal.name` にする
+- ナビのログイン名は `sec:authentication="principal.name"`(ニックネーム)。`Principal` はログイン時点のスナップショットなので、ニックネーム変更機能を作る場合はセッション内の `Principal` も更新が必要
+- `form.html` は現在追加専用(`th:action="@{/todos/new}"`、ボタン文言は「追加」直書き)。編集実装時にモデル経由で action・見出し・ボタン文言を切り替える
 - `description` の空文字は Service で null に正規化する(`TodoService.normalizeDescriptionBlank`)
 - 登録時の同時実行による `UNIQUE` 制約違反(`DataIntegrityViolationException`)の変換は未対応(任意)

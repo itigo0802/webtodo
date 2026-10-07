@@ -1,4 +1,4 @@
-<header th:fragment="navbar">
+<header th:fragment="navbar" class="container">
     <nav>
         <ul>
             <li>
@@ -7,12 +7,13 @@
         </ul>
         <ul>
             <li><a th:href="@{/todos}">ホーム</a></li>
+            <li><a th:href="@{/todos/new}">TODO追加</a></li>
         </ul>
         <ul>
             <li>
-                <details>
-                    <summary>
-                        <span sec:authentication="name"></span>さん
+                <details class="dropdown">
+                    <summary role="button">
+                        <span sec:authentication="principal.name"></span>さん
                     </summary>
                     <ul>
                         <li>

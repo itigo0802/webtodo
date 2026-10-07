@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.User;
 public class AppUserPrincipal extends User {
 
     private final Long id;
+    private final String name;
 
     public AppUserPrincipal(AppUser user) {
         super(
@@ -20,5 +21,6 @@ public class AppUserPrincipal extends User {
             AuthorityUtils.createAuthorityList("ROLE_USER")
         );
         this.id = user.getId();
+        this.name = user.getName();
     }
 }
