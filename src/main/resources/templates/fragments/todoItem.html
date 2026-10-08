@@ -1,0 +1,14 @@
+<tr th:fragment="todoItem(todo)">
+    <td th:text="${todo.title}"></td>
+    <td th:text="${todo.dueDate}"></td>
+    <td>
+        <input
+            type="checkbox"
+            th:checked="${todo.done}"
+            hx:post="@{/todos/{id}/toggle(id=${todo.id})}"
+            hx-trigger="change"
+            hx-target="closest tr"
+            hx-swap="outerHTML"
+        />
+    </td>
+</tr>

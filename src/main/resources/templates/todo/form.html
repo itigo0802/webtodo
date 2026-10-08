@@ -1,22 +1,46 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
     <head th:replace="~{fragments/head :: head('TODO追加')}"></head>
-    <body>
-        <header th:replace="~{fragments/navbar :: navbar}"></header>
+    <body th:replace="~{fragments/layout :: layout(~{::main})}">
         <main class="container">
             <h1>TODO追加</h1>
-            <form th:action="@{/todos/new}" th:object="${todoForm}" method="post">
+            <form
+                th:action="@{/todos/new}"
+                th:object="${todoForm}"
+                method="post"
+            >
                 <label for="title">タイトル</label>
-                <input type="text" th:field="*{title}"　th:aria-invalid="${#fields.hasErrors('title')} ? 'true'" />
-                <small th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></small>
+                <input
+                    type="text"
+                    th:field="*{title}"
+                    th:attr="aria-invalid=${#fields.hasErrors('title')}"
+                />
+                <small
+                    th:if="${#fields.hasErrors('title')}"
+                    th:errors="*{title}"
+                ></small>
 
                 <label for="dueDate">期限日</label>
-                <input type="date" th:field="*{dueDate}"　th:aria-invalid="${#fields.hasErrors('dueDate')} ? 'true'" />
-                <small th:if="${#fields.hasErrors('dueDate')}" th:errors="*{dueDate}"></small>
+                <input
+                    type="date"
+                    th:field="*{dueDate}"
+                    th:attr="aria-invalid=${#fields.hasErrors('dueDate')}"
+                />
+                <small
+                    th:if="${#fields.hasErrors('dueDate')}"
+                    th:errors="*{dueDate}"
+                ></small>
 
                 <label for="description">説明</label>
-                <textarea th:field="*{description}" th:aria-invalid="${#fields.hasErrors('description')} ? 'true'" rows="5"></textarea>
-                <small th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></small>
+                <textarea
+                    th:field="*{description}"
+                    th:attr="aria-invalid=${#fields.hasErrors('description')}"
+                    rows="5"
+                ></textarea>
+                <small
+                    th:if="${#fields.hasErrors('description')}"
+                    th:errors="*{description}"
+                ></small>
                 <button type="submit">追加</button>
             </form>
         </main>

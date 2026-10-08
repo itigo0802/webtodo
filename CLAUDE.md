@@ -50,13 +50,15 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 
 - パスワードはBCryptでハッシュ化して保存する
 - TODOの参照・更新・削除は必ずログインユーザーの所有で絞り込む。他人のIDを指定された場合は404を返す
-- CSRF保護は有効のまま。htmxリクエストにはCSRFトークンを `hx-headers` で付与する
+- CSRF保護は有効のまま。htmxリクエストにはCSRFトークンを `hx-headers` で付与する。`htmx-spring-boot-thymeleaf:5.1.0` の `hx:post` / `hx:put` / `hx:patch` / `hx:delete` は自動付与するため、これらを使う場合は手書きの `hx-headers` は不要
 - 匿名アクセスを許可するのは `/login`、`/register`、`/error`、静的リソースのみ
 
 ## htmx規約
 
 - 部分更新はフラグメントを返して該当要素(例: TODOの1行)のみ差し替える(`htmx-spring-boot-thymeleaf` を利用)
 - 通常のリクエストとhtmxリクエストの両方で画面が壊れないようにする
+- URL等の式を評価する属性は `hx:post="@{...}"` のように書く(`th:hx-post` ではない)。固定値は `hx-target` 等の通常の属性でよい
+- htmx本体は WebJar(`org.webjars.npm:htmx.org:2.0.11`)で管理し、`fragments/head.html` の `<script defer>` で読み込む。サーバー側ライブラリだけではブラウザで動作しない
 
 ## フロントエンド規約
 
@@ -77,12 +79,14 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - [x] 2. user: `AppUser` / `UserRepository` / `AppUserDetailsService` / `UserService` / `RegisterForm` / `AuthController`
 - [x] 3. `SecurityConfig`、`login.html`、`register.html`、`fragments/head.html`(登録・ログインは動作確認済み)
 - [x] 4. todo: `Todo` / `TodoRepository` / `TodoForm` / `TodoNotFoundException` / `TodoService`、`AppUserPrincipal`(ログインユーザーIDとニックネームを保持)
-- [ ] 5. Controller・画面: 一覧 `GET /todos`(実装済み・動作確認済み)。追加 `GET/POST /todos/new`・`form.html`(動作確認済み)、ナビのニックネーム表示(`principal.name`)も実装済み。残りは編集、`POST /todos/{id}/toggle`、削除、期限切れの強調表示
+- [ ] 5. Controller・画面: 一覧 `GET /todos`、追加 `GET/POST /todos/new`・`form.html` は動作確認済み。ナビのニックネーム表示(`principal.name`)、共通レイアウト(`fragments/layout.html`)も実装済み。完了切替 `POST /todos/{id}/toggle` は実装済み・ブラウザのNetworkでPOSTと応答を動作確認済み。htmx時は1行のフラグメントを返し、通常リクエスト時は一覧へリダイレクトする。残りは編集、削除、期限切れの強調表示
 - [ ] 6. テスト
 
 ### 未解決・メモ
 
-- 一覧のチェックボックスはトグル実装まで `disabled` にする。`<main>` に `class="container"` を付ける
+- 一覧のチェックボックスは有効化済み。`hx:post` + `hx-trigger="change"` + `hx-target="closest tr"` + `hx-swap="outerHTML"` で行を差し替える。テンプレート名は小文字の `fragments/todoItem.html`
+- 一覧・追加画面は `layout(~{::main})` で共通レイアウトを利用する。渡す側の `<main>` に `class="container"` を付ける(`th:replace` でレイアウト側の `<main>` は置換される)
+- トグルの他ユーザー所有TODOに対する404、通常リクエストのリダイレクト等の自動テストは未実装。正常系のNetwork確認だけでは所有者制限の検証にはならない
 - ログインユーザーIDは `@AuthenticationPrincipal AppUserPrincipal` から `getId()` で取る。`@WebMvcTest` では `@WithMockUser` ではなく `AppUserPrincipal` を渡す(`SecurityMockMvcRequestPostProcessors.user(...)` など)
 - ナビのログイン名は `sec:authentication="principal.name"`(ニックネーム)。`Principal` はログイン時点のスナップショットなので、ニックネーム変更機能を作る場合はセッション内の `Principal` も更新が必要
 - `form.html` は現在追加専用(`th:action="@{/todos/new}"`、ボタン文言は「追加」直書き)。編集実装時にモデル経由で action・見出し・ボタン文言を切り替える

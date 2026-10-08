@@ -1,0 +1,4 @@
+<body th:fragment="layout(content)">
+    <header th:replace="~{fragments/navbar :: navbar}"></header>
+    <main class="container" th:replace="${content}"></main>
+</body>
