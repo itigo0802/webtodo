@@ -21,4 +21,12 @@ public class TodoForm {
 
     @DateTimeFormat(iso = ISO.DATE)
     private LocalDate dueDate;
+
+    static TodoForm from(Todo todo) {
+        TodoForm form = new TodoForm();
+        form.setTitle(todo.getTitle());
+        form.setDueDate(todo.getDueDate());
+        form.setDescription(todo.getDescription());
+        return form;
+    }
 }

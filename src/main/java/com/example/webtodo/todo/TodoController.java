@@ -63,6 +63,36 @@ public class TodoController {
         return "redirect:/todos";
     }
 
+    @GetMapping("/todos/{id}/edit")
+    public String edit(
+        @PathVariable Long id,
+        @AuthenticationPrincipal AppUserPrincipal principal,
+        Model model
+    ) {
+        model.addAttribute("todoId", id);
+        model.addAttribute(
+            "todoForm",
+            TodoForm.from(service.get(id, principal.getId()))
+        );
+        return "todo/form";
+    }
+
+    @PostMapping("/todos/{id}/edit")
+    public String update(
+        @PathVariable Long id,
+        @AuthenticationPrincipal AppUserPrincipal principal,
+        @Valid @ModelAttribute TodoForm form,
+        BindingResult result,
+        Model model
+    ) {
+        if (result.hasErrors()) {
+            model.addAttribute("todoId", id);
+            return "todo/form";
+        }
+        service.update(id, form, principal.getId());
+        return "redirect:/todos";
+    }
+
     @ModelAttribute("today")
     LocalDate today() {
         return LocalDate.now();
