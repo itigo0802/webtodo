@@ -79,11 +79,14 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - [x] 2. user: `AppUser` / `UserRepository` / `AppUserDetailsService` / `UserService` / `RegisterForm` / `AuthController`
 - [x] 3. `SecurityConfig`、`login.html`、`register.html`、`fragments/head.html`(登録・ログインは動作確認済み)
 - [x] 4. todo: `Todo` / `TodoRepository` / `TodoForm` / `TodoNotFoundException` / `TodoService`、`AppUserPrincipal`(ログインユーザーIDとニックネームを保持)
-- [ ] 5. Controller・画面: 一覧 `GET /todos`、追加 `GET/POST /todos/new`・`form.html` は動作確認済み。ナビのニックネーム表示(`principal.name`)、共通レイアウト(`fragments/layout.html`)も実装済み。完了切替 `POST /todos/{id}/toggle` は実装済み・ブラウザのNetworkでPOSTと応答を動作確認済み。htmx時は1行のフラグメントを返し、通常リクエスト時は一覧へリダイレクトする。残りは編集、削除、期限切れの強調表示
+- [ ] 5. Controller・画面: 一覧 `GET /todos`、追加 `GET/POST /todos/new`・`form.html` は動作確認済み。ナビのニックネーム表示(`principal.name`)、共通レイアウト(`fragments/layout.html`)も実装済み。完了切替 `POST /todos/{id}/toggle` は実装済み・ブラウザのNetworkでPOSTと応答を動作確認済み。htmx時は1行のフラグメントを返し、通常リクエスト時は一覧へリダイレクトする。完了時の取り消し線(`<s>`)と期限切れの強調表示(`.overdue`)も実装・動作確認済み。残りは編集、削除
 - [ ] 6. テスト
 
 ### 未解決・メモ
 
+- `today`(`LocalDate.now()`)は `TodoController` の `@ModelAttribute("today")` で全ハンドラに入る。`todoItem.html` が `todo.isOverdue(today)` を使うため、フラグメントを返すハンドラが増えても渡し忘れは起きない
+- 独自CSSは `static/css/app.css`。`fragments/head.html` でPico.cssの後ろに読み込む(読み込みを足さないと効かない)
+- 期限切れの単体テスト(`Todo#isOverdue`)は未実装。境界は「昨日・未完了」「今日・未完了」「昨日・完了済み」「`dueDate` が null」の4ケース
 - 一覧のチェックボックスは有効化済み。`hx:post` + `hx-trigger="change"` + `hx-target="closest tr"` + `hx-swap="outerHTML"` で行を差し替える。テンプレート名は小文字の `fragments/todoItem.html`
 - 一覧・追加画面は `layout(~{::main})` で共通レイアウトを利用する。渡す側の `<main>` に `class="container"` を付ける(`th:replace` でレイアウト側の `<main>` は置換される)
 - トグルの他ユーザー所有TODOに対する404、通常リクエストのリダイレクト等の自動テストは未実装。正常系のNetwork確認だけでは所有者制限の検証にはならない

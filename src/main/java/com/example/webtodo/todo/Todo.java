@@ -51,4 +51,8 @@ public class Todo {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public boolean isOverdue(LocalDate today) {
+        return dueDate != null && !done && dueDate.isBefore(today);
+    }
 }

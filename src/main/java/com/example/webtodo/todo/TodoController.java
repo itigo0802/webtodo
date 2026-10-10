@@ -3,6 +3,7 @@ package com.example.webtodo.todo;
 import com.example.webtodo.user.AppUserPrincipal;
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HtmxRequest;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -60,5 +61,10 @@ public class TodoController {
             return "fragments/todoItem :: todoItem";
         }
         return "redirect:/todos";
+    }
+
+    @ModelAttribute("today")
+    LocalDate today() {
+        return LocalDate.now();
     }
 }

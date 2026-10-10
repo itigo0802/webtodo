@@ -1,6 +1,4 @@
 <tr th:fragment="todoItem(todo)">
-    <td th:text="${todo.title}"></td>
-    <td th:text="${todo.dueDate}"></td>
     <td>
         <input
             type="checkbox"
@@ -9,6 +7,18 @@
             hx-trigger="change"
             hx-target="closest tr"
             hx-swap="outerHTML"
+            th:aria-label="${todo.done} ? |${todo.title}を未完了に戻す| : |${todo.title}を完了にする|"
         />
+    </td>
+    <td>
+        <s th:if="${todo.done}" th:text="${todo.title}"></s>
+        <span th:unless="${todo.done}" th:text="${todo.title}"></span>
+    </td>
+    <td
+        th:text="${todo.dueDate}"
+        th:classappend="${todo.isOverdue(today)} ? 'overdue'"
+    ></td>
+    <td>
+        <a th:href="@{/todos/{id}/edit(id=${todo.id})}" role="button">編集</a>
     </td>
 </tr>

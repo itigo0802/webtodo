@@ -8,9 +8,10 @@
                 <table>
                     <thead>
                         <tr>
+                            <th></th>
                             <th>タイトル</th>
                             <th>期限日</th>
-                            <th>完了</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody th:unless="${#lists.isEmpty(todos)}">
@@ -22,7 +23,7 @@
                     </tbody>
                     <tbody th:if="${#lists.isEmpty(todos)}">
                         <tr>
-                            <td colspan="3">TODOがありません</td>
+                            <td colspan="4">TODOがありません</td>
                         </tr>
                     </tbody>
                 </table>
