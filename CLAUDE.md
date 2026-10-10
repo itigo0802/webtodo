@@ -79,7 +79,7 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - [x] 2. user: `AppUser` / `UserRepository` / `AppUserDetailsService` / `UserService` / `RegisterForm` / `AuthController`
 - [x] 3. `SecurityConfig`、`login.html`、`register.html`、`fragments/head.html`(登録・ログインは動作確認済み)
 - [x] 4. todo: `Todo` / `TodoRepository` / `TodoForm` / `TodoNotFoundException` / `TodoService`、`AppUserPrincipal`(ログインユーザーIDとニックネームを保持)
-- [ ] 5. Controller・画面: 一覧 `GET /todos`、追加 `GET/POST /todos/new`・`form.html` は動作確認済み。ナビのニックネーム表示(`principal.name`)、共通レイアウト(`fragments/layout.html`)も実装済み。完了切替 `POST /todos/{id}/toggle` は実装済み・ブラウザのNetworkでPOSTと応答を動作確認済み。htmx時は1行のフラグメントを返し、通常リクエスト時は一覧へリダイレクトする。完了時の取り消し線(`<s>`)と期限切れの強調表示(`.overdue`)も実装・動作確認済み。編集 `GET/POST /todos/{id}/edit` も実装・動作確認済み。残りは削除
+- [x] 5. Controller・画面: 一覧 `GET /todos`、追加 `GET/POST /todos/new`・`form.html` は動作確認済み。ナビのニックネーム表示(`principal.name`)、共通レイアウト(`fragments/layout.html`)も実装済み。完了切替 `POST /todos/{id}/toggle` は実装済み・ブラウザのNetworkでPOSTと応答を動作確認済み。htmx時は1行のフラグメントを返し、通常リクエスト時は一覧へリダイレクトする。完了時の取り消し線(`<s>`)と期限切れの強調表示(`.overdue`)も実装・動作確認済み。編集 `GET/POST /todos/{id}/edit` も実装・動作確認済み。削除 `POST /todos/{id}/delete` も実装・動作確認済み(htmx時は200・本文なしで行を消し、通常時は303で一覧へ。204は使わない)
 - [ ] 6. テスト
 
 ### 未解決・メモ
@@ -93,6 +93,7 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - ログインユーザーIDは `@AuthenticationPrincipal AppUserPrincipal` から `getId()` で取る。`@WebMvcTest` では `@WithMockUser` ではなく `AppUserPrincipal` を渡す(`SecurityMockMvcRequestPostProcessors.user(...)` など)
 - ナビのログイン名は `sec:authentication="principal.name"`(ニックネーム)。`Principal` はログイン時点のスナップショットなので、ニックネーム変更機能を作る場合はセッション内の `Principal` も更新が必要
 - `form.html` は追加・編集で共用。モデル属性 `todoId`(追加時は null)の有無で action・見出し・ボタン文言・タブ名を切り替える。`POST /todos/{id}/edit` のバリデーションエラー時も `todoId` をモデルに入れ直す(忘れると追加モードに戻る)
-- 編集の「他ユーザーのTODOは404」(`GET`/`POST` 両方)の自動テストは未実装
+- 削除は `<form th:action hx:post hx-confirm>` の構成。htmxが無効でも通常のフォーム送信で動くが、その経路には確認ダイアログがない
+- 編集・削除の「他ユーザーのTODOは404」(編集は `GET`/`POST` 両方)の自動テストは未実装
 - `description` の空文字は Service で null に正規化する(`TodoService.normalizeDescriptionBlank`)
 - 登録時の同時実行による `UNIQUE` 制約違反(`DataIntegrityViolationException`)の変換は未対応(任意)

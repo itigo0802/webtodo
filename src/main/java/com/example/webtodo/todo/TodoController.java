@@ -3,8 +3,11 @@ package com.example.webtodo.todo;
 import com.example.webtodo.user.AppUserPrincipal;
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HtmxRequest;
 import jakarta.validation.Valid;
+import java.net.URI;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -91,6 +94,21 @@ public class TodoController {
         }
         service.update(id, form, principal.getId());
         return "redirect:/todos";
+    }
+
+    @PostMapping("/todos/{id}/delete")
+    public ResponseEntity<Void> delete(
+        @PathVariable Long id,
+        @AuthenticationPrincipal AppUserPrincipal principal,
+        HtmxRequest htmxRequest
+    ) {
+        service.delete(id, principal.getId());
+        if (htmxRequest.isHtmxRequest()) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.status(HttpStatus.SEE_OTHER)
+            .location(URI.create("/todos"))
+            .build();
     }
 
     @ModelAttribute("today")

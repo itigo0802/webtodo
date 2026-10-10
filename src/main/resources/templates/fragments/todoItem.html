@@ -20,5 +20,15 @@
     ></td>
     <td>
         <a th:href="@{/todos/{id}/edit(id=${todo.id})}" role="button">編集</a>
+        <form
+            th:action="@{/todos/{id}/delete(id=${todo.id})}"
+            method="post"
+            hx:post="@{/todos/{id}/delete(id=${todo.id})}"
+            hx-confirm="削除しますか?"
+            hx-target="closest tr"
+            hx-swap="outerHTML"
+        >
+            <button type="submit" class="secondary">削除</button>
+        </form>
     </td>
 </tr>
