@@ -80,13 +80,19 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - [x] 3. `SecurityConfig`、`login.html`、`register.html`、`fragments/head.html`(登録・ログインは動作確認済み)
 - [x] 4. todo: `Todo` / `TodoRepository` / `TodoForm` / `TodoNotFoundException` / `TodoService`、`AppUserPrincipal`(ログインユーザーIDとニックネームを保持)
 - [x] 5. Controller・画面: 一覧 `GET /todos`、追加 `GET/POST /todos/new`・`form.html` は動作確認済み。ナビのニックネーム表示(`principal.name`)、共通レイアウト(`fragments/layout.html`)も実装済み。完了切替 `POST /todos/{id}/toggle` は実装済み・ブラウザのNetworkでPOSTと応答を動作確認済み。htmx時は1行のフラグメントを返し、通常リクエスト時は一覧へリダイレクトする。完了時の取り消し線(`<s>`)と期限切れの強調表示(`.overdue`)も実装・動作確認済み。編集 `GET/POST /todos/{id}/edit` も実装・動作確認済み。削除 `POST /todos/{id}/delete` も実装・動作確認済み(htmx時は200・本文なしで行を消し、通常時は303で一覧へ。204は使わない)
-- [ ] 6. テスト
+- [ ] 6. テスト(着手済み)
+  - [x] `TodoTest`: `Todo#isOverdue` の4ケース
+  - [x] `TodoServiceTest`: 空白だけの説明を null で保存、本人のTODOの取得・削除、他ユーザーのTODOの取得・削除の拒否(計5ケース)
+  - [ ] Service / Repository: 一覧の所有者絞り込み・並び順、編集、完了切替などの残りのテスト
+  - [ ] Controller: 所有者制限による404、バリデーション、通常リクエストとhtmxリクエストの応答など
 
 ### 未解決・メモ
 
 - `today`(`LocalDate.now()`)は `TodoController` の `@ModelAttribute("today")` で全ハンドラに入る。`todoItem.html` が `todo.isOverdue(today)` を使うため、フラグメントを返すハンドラが増えても渡し忘れは起きない
 - 独自CSSは `static/css/app.css`。`fragments/head.html` でPico.cssの後ろに読み込む(読み込みを足さないと効かない)
-- 期限切れの単体テスト(`Todo#isOverdue`)は未実装。境界は「昨日・未完了」「今日・未完了」「昨日・完了済み」「`dueDate` が null」の4ケース
+- 期限切れの単体テスト(`Todo#isOverdue`)は実装・実行確認済み。固定日を基準に「昨日・未完了」「今日・未完了」「昨日・完了済み」「`dueDate` が null」の4ケースを検証
+- `TodoServiceTest` は `@DataJpaTest` + `@Import({TodoService.class, TestcontainersConfiguration.class})` で既存のPostgreSQLコンテナ設定を利用する。別パッケージから参照するため `TestcontainersConfiguration` は public に変更済み
+- 次回は「他ユーザーのTODOは完了切替できない」のServiceテストから再開する。既存の「他ユーザーのTODOは取得できない」の準備を使い、`toggle` の例外と未完了のままであることを確認する
 - 一覧のチェックボックスは有効化済み。`hx:post` + `hx-trigger="change"` + `hx-target="closest tr"` + `hx-swap="outerHTML"` で行を差し替える。テンプレート名は小文字の `fragments/todoItem.html`
 - 一覧・追加画面は `layout(~{::main})` で共通レイアウトを利用する。渡す側の `<main>` に `class="container"` を付ける(`th:replace` でレイアウト側の `<main>` は置換される)
 - トグルの他ユーザー所有TODOに対する404、通常リクエストのリダイレクト等の自動テストは未実装。正常系のNetwork確認だけでは所有者制限の検証にはならない
@@ -94,6 +100,6 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - ナビのログイン名は `sec:authentication="principal.name"`(ニックネーム)。`Principal` はログイン時点のスナップショットなので、ニックネーム変更機能を作る場合はセッション内の `Principal` も更新が必要
 - `form.html` は追加・編集で共用。モデル属性 `todoId`(追加時は null)の有無で action・見出し・ボタン文言・タブ名を切り替える。`POST /todos/{id}/edit` のバリデーションエラー時も `todoId` をモデルに入れ直す(忘れると追加モードに戻る)
 - 削除は `<form th:action hx:post hx-confirm>` の構成。htmxが無効でも通常のフォーム送信で動くが、その経路には確認ダイアログがない
-- 編集・削除の「他ユーザーのTODOは404」(編集は `GET`/`POST` 両方)の自動テストは未実装
+- 編集・削除の「他ユーザーのTODOは404」(編集は `GET`/`POST` 両方)のControllerテストは未実装。削除のService側の所有者制限(`TodoNotFoundException`)は検証済み
 - `description` の空文字は Service で null に正規化する(`TodoService.normalizeDescriptionBlank`)
 - 登録時の同時実行による `UNIQUE` 制約違反(`DataIntegrityViolationException`)の変換は未対応(任意)
