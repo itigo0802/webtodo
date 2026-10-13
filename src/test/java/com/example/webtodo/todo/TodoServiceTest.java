@@ -1,11 +1,18 @@
 package com.example.webtodo.todo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.LocalDate;
 
 import com.example.webtodo.user.AppUser;
 import com.example.webtodo.user.UserRepository;
+
+import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -26,6 +33,9 @@ public class TodoServiceTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Test
     void 空白だけの説明はnullで保存される() {
@@ -141,5 +151,190 @@ public class TodoServiceTest {
 
         todoService.delete(todoId, userId);
         assertEquals(0L, todoRepository.count());
+    }
+
+    @Test
+    void 他ユーザーのTODOは完了切り替えできない() {
+        AppUser user1 = new AppUser();
+        user1.setEmail("user1@example.com");
+        user1.setPassword("password");
+        user1.setName("ユーザー1");
+        user1 = userRepository.save(user1);
+
+        AppUser user2 = new AppUser();
+        user2.setEmail("user2@example.com");
+        user2.setPassword("password");
+        user2.setName("ユーザー2");
+        user2 = userRepository.save(user2);
+
+        TodoForm form = new TodoForm();
+        form.setTitle("テストTODO");
+        form.setDescription("  ");
+
+        todoService.create(form, user2.getId());
+
+        Long todoId = todoRepository.findAll().get(0).getId();
+        Long otherUserId = user1.getId();
+
+        assertThrows(TodoNotFoundException.class, () ->
+            todoService.toggle(todoId, otherUserId)
+        );
+        assertFalse(todoRepository.findById(todoId).orElseThrow().isDone());
+    }
+
+    @Test
+    void 本人のTODOは未完了から完了にできる() {
+        AppUser user = new AppUser();
+        user.setEmail("test@example.com");
+        user.setPassword("password");
+        user.setName("テスト");
+        user = userRepository.save(user);
+
+        TodoForm form = new TodoForm();
+        form.setTitle("テストTODO");
+        form.setDescription("  ");
+
+        todoService.create(form, user.getId());
+
+        Long todoId = todoRepository.findAll().get(0).getId();
+        Long userId = user.getId();
+
+        todoService.toggle(todoId, userId);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertTrue(todoRepository.findById(todoId).orElseThrow().isDone());
+    }
+
+    @Test
+    void 本人のTODOは完了から未完了に戻せる() {
+        AppUser user = new AppUser();
+        user.setEmail("test@example.com");
+        user.setPassword("password");
+        user.setName("テスト");
+        user = userRepository.save(user);
+
+        TodoForm form = new TodoForm();
+        form.setTitle("テストTODO");
+        form.setDescription("  ");
+
+        todoService.create(form, user.getId());
+
+        Long todoId = todoRepository.findAll().get(0).getId();
+        Long userId = user.getId();
+
+        todoService.toggle(todoId, userId);
+        entityManager.flush();
+        entityManager.clear();
+        assertTrue(todoRepository.findById(todoId).orElseThrow().isDone());
+
+        todoService.toggle(todoId, userId);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertFalse(todoRepository.findById(todoId).orElseThrow().isDone());
+    }
+
+    @Test
+    void 他ユーザーのTODOは編集できない() {
+        AppUser user1 = new AppUser();
+        user1.setEmail("user1@example.com");
+        user1.setPassword("password");
+        user1.setName("ユーザー1");
+        user1 = userRepository.save(user1);
+
+        AppUser user2 = new AppUser();
+        user2.setEmail("user2@example.com");
+        user2.setPassword("password");
+        user2.setName("ユーザー2");
+        user2 = userRepository.save(user2);
+
+        TodoForm form = new TodoForm();
+        form.setTitle("テストTODO");
+        form.setDescription("  ");
+
+        todoService.create(form, user2.getId());
+
+        Long todoId = todoRepository.findAll().get(0).getId();
+        Long otherUserId = user1.getId();
+
+        TodoForm editForm = new TodoForm();
+        editForm.setTitle("変更後タイトル");
+        editForm.setDescription("変更後の説明");
+
+        assertThrows(TodoNotFoundException.class, () ->
+            todoService.update(todoId, editForm, otherUserId)
+        );
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Todo todo = todoRepository.findById(todoId).orElseThrow();
+        assertEquals("テストTODO", todo.getTitle());
+        assertNull(todo.getDescription());
+    }
+
+    @Test
+    void 本人のTODOは編集できる() {
+        AppUser user = new AppUser();
+        user.setEmail("test@example.com");
+        user.setPassword("password");
+        user.setName("テスト");
+        user = userRepository.save(user);
+
+        TodoForm form = new TodoForm();
+        form.setTitle("テストTODO");
+        form.setDescription("  ");
+
+        todoService.create(form, user.getId());
+
+        Long todoId = todoRepository.findAll().get(0).getId();
+        Long userId = user.getId();
+
+        TodoForm editForm = new TodoForm();
+        editForm.setTitle("変更後タイトル");
+        editForm.setDescription("変更後の説明");
+        editForm.setDueDate(LocalDate.of(2026, 11, 1));
+
+        todoService.update(todoId, editForm, userId);
+        entityManager.flush();
+        entityManager.clear();
+
+        Todo todo = todoRepository.findById(todoId).orElseThrow();
+        assertEquals("変更後タイトル", todo.getTitle());
+        assertEquals("変更後の説明", todo.getDescription());
+        assertEquals(LocalDate.of(2026, 11, 1), todo.getDueDate());
+    }
+
+    @Test
+    void 編集時に空白だけの説明はnullで保存される() {
+        AppUser user = new AppUser();
+        user.setEmail("test@example.com");
+        user.setPassword("password");
+        user.setName("テスト");
+        user = userRepository.save(user);
+
+        TodoForm form = new TodoForm();
+        form.setTitle("テストタイトル");
+        form.setDescription("元の説明");
+
+        todoService.create(form, user.getId());
+
+        Long todoId = todoRepository.findAll().get(0).getId();
+        Long userId = user.getId();
+
+        TodoForm editForm = new TodoForm();
+        editForm.setTitle("変更後タイトル");
+        editForm.setDescription("    ");
+        editForm.setDueDate(LocalDate.of(2026, 11, 1));
+
+        todoService.update(todoId, editForm, userId);
+        entityManager.flush();
+        entityManager.clear();
+
+        Todo todo = todoRepository.findById(todoId).orElseThrow();
+        assertEquals("変更後タイトル", todo.getTitle());
+        assertNull(todo.getDescription());
+        assertEquals(LocalDate.of(2026, 11, 1), todo.getDueDate());
     }
 }
