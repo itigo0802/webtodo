@@ -82,8 +82,8 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - [x] 5. Controller・画面: 一覧 `GET /todos`、追加 `GET/POST /todos/new`・`form.html` は動作確認済み。ナビのニックネーム表示(`principal.name`)、共通レイアウト(`fragments/layout.html`)も実装済み。完了切替 `POST /todos/{id}/toggle` は実装済み・ブラウザのNetworkでPOSTと応答を動作確認済み。htmx時は1行のフラグメントを返し、通常リクエスト時は一覧へリダイレクトする。完了時の取り消し線(`<s>`)と期限切れの強調表示(`.overdue`)も実装・動作確認済み。編集 `GET/POST /todos/{id}/edit` も実装・動作確認済み。削除 `POST /todos/{id}/delete` も実装・動作確認済み(htmx時は200・本文なしで行を消し、通常時は303で一覧へ。204は使わない)
 - [ ] 6. テスト(着手済み)
   - [x] `TodoTest`: `Todo#isOverdue` の4ケース
-  - [x] `TodoServiceTest`: 作成・編集時の空白だけの説明を null で保存、本人のTODOの取得・削除・編集、本人の完了切替(未完了→完了、完了→未完了)、他ユーザーのTODOの取得・削除・編集・完了切替の拒否(計11ケース。ホスト側で成功をユーザー確認済み)
-  - [ ] Service / Repository: 一覧の所有者絞り込み・並び順などの残りのテスト
+  - [x] `TodoServiceTest`: 作成・編集時の空白だけの説明を null で保存、本人のTODOの取得・削除・編集、本人の完了切替(未完了→完了、完了→未完了)、他ユーザーのTODOの取得・削除・編集・完了切替の拒否、一覧の所有者絞り込み・期限日の昇順・同じ期限日のID降順・期限なしが最後になること(計15ケース。ホスト側の `TodoServiceTest` 成功をユーザー確認済み)
+  - [ ] Service / Repository: 本人のTODOがない場合の空の一覧など、残りのテスト
   - [ ] Controller: 所有者制限による404、バリデーション、通常リクエストとhtmxリクエストの応答など
 
 ### 未解決・メモ
@@ -92,9 +92,10 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - 独自CSSは `static/css/app.css`。`fragments/head.html` でPico.cssの後ろに読み込む(読み込みを足さないと効かない)
 - 期限切れの単体テスト(`Todo#isOverdue`)は実装・実行確認済み。固定日を基準に「昨日・未完了」「今日・未完了」「昨日・完了済み」「`dueDate` が null」の4ケースを検証
 - `TodoServiceTest` は `@DataJpaTest` + `@Import({TodoService.class, TestcontainersConfiguration.class})` で既存のPostgreSQLコンテナ設定を利用する。別パッケージから参照するため `TestcontainersConfiguration` は public に変更済み
-- 次回は「一覧には本人のTODOだけが含まれる」のServiceテストから再開する(手順提示済み・未実装)。既存の「他ユーザーのTODOは編集できない」の2ユーザーの準備を流用し、それぞれにTODOを作成して `list(user1.getId())` が本人の1件だけを返すことを確認する。並び順は別ケースで検証する
+- 次回は「本人のTODOがなければ空の一覧を返す」のServiceテストから再開する(手順提示済み・未実装)。既存の「一覧には本人のTODOだけが含まれる」の2ユーザーの準備を流用し、ユーザー2だけにTODOを作成して `assertTrue(todoService.list(user1.getId()).isEmpty())` を確認する。今回はこのケースを追加していない
+- 一覧の期限日昇順テストは「遅い・早い・中間」の順に3件作成し、「早い・中間・遅い」の順で返ることを検証する。2件を遅い・早いの順で作成するだけでは、ID降順のみの誤った実装でも通るため、3件で区別する
 - 本人の編集・完了切替と、編集拒否・編集時の説明の空白→null変換は、`EntityManager.flush()` → `clear()` 後にDBから再取得して検証する。`flush()` はコミットではなく、`@DataJpaTest` の終了時にはロールバックされる
-- 検証環境: エージェントの作業用DockerコンテナにはDockerソケットがなく、Testcontainersを起動できない。`./gradlew build -x test` は成功。全テスト実行はDocker接続エラーで失敗するため、全体の回帰確認はホスト側で `JAVA_HOME=~/.sdkman/candidates/java/21.0.10-tem ./gradlew test` を実行する必要がある。今回の `TodoServiceTest` の成功はユーザーがホスト側で確認したもの
+- 検証環境: エージェントの作業用DockerコンテナにはDockerソケットがなく、Testcontainersを起動できない。今回の `./gradlew build -x test` は成功。全テスト `./gradlew test` は20件中16件がDocker環境エラーで失敗し、DBを使わない `TodoTest` の4件は成功。今回の `TodoServiceTest` の15ケース成功はユーザーがホスト側で確認したもの。全体の回帰成功は未確認のため、ホスト側で `JAVA_HOME=~/.sdkman/candidates/java/21.0.10-tem ./gradlew test` を実行する必要がある
 - 一覧のチェックボックスは有効化済み。`hx:post` + `hx-trigger="change"` + `hx-target="closest tr"` + `hx-swap="outerHTML"` で行を差し替える。テンプレート名は小文字の `fragments/todoItem.html`
 - 一覧・追加画面は `layout(~{::main})` で共通レイアウトを利用する。渡す側の `<main>` に `class="container"` を付ける(`th:replace` でレイアウト側の `<main>` は置換される)
 - トグルの他ユーザー所有TODOに対する404、通常リクエストのリダイレクト等の自動テストは未実装。正常系のNetwork確認だけでは所有者制限の検証にはならない

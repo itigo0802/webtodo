@@ -337,4 +337,115 @@ public class TodoServiceTest {
         assertNull(todo.getDescription());
         assertEquals(LocalDate.of(2026, 11, 1), todo.getDueDate());
     }
+
+    @Test
+    void 一覧には本人のTODOだけが含まれる() {
+        AppUser user1 = new AppUser();
+        user1.setEmail("user1@example.com");
+        user1.setPassword("password");
+        user1.setName("ユーザー1");
+        user1 = userRepository.save(user1);
+
+        AppUser user2 = new AppUser();
+        user2.setEmail("user2@example.com");
+        user2.setPassword("password");
+        user2.setName("ユーザー2");
+        user2 = userRepository.save(user2);
+
+        TodoForm form1 = new TodoForm();
+        form1.setTitle("ユーザー1のTODO");
+        todoService.create(form1, user1.getId());
+
+        TodoForm form2 = new TodoForm();
+        form2.setTitle("ユーザー2のTODO");
+        todoService.create(form2, user2.getId());
+
+        var todos = todoService.list(user1.getId());
+
+        assertEquals(1, todos.size());
+        assertEquals("ユーザー1のTODO", todos.get(0).getTitle());
+    }
+
+    @Test
+    void 一覧は期限日が早い順に並ぶ() {
+        AppUser user = new AppUser();
+        user.setEmail("user1@example.com");
+        user.setPassword("password");
+        user.setName("ユーザー");
+        user = userRepository.save(user);
+
+        TodoForm later = new TodoForm();
+        later.setTitle("期限が遅いTODO");
+        later.setDueDate(LocalDate.of(2026, 11, 10));
+        todoService.create(later, user.getId());
+
+        TodoForm earlier = new TodoForm();
+        earlier.setTitle("期限が早いTODO");
+        earlier.setDueDate(LocalDate.of(2026, 11, 1));
+        todoService.create(earlier, user.getId());
+
+        TodoForm middle = new TodoForm();
+        middle.setTitle("期限が中間のTODO");
+        middle.setDueDate(LocalDate.of(2026, 11, 5));
+        todoService.create(middle, user.getId());
+
+        var todos = todoService.list(user.getId());
+
+        assertEquals(3, todos.size());
+        assertEquals("期限が早いTODO", todos.get(0).getTitle());
+        assertEquals("期限が中間のTODO", todos.get(1).getTitle());
+        assertEquals("期限が遅いTODO", todos.get(2).getTitle());
+    }
+
+    @Test
+    void 同じ期限日のTODOはIDの降順に並ぶ() {
+        AppUser user = new AppUser();
+        user.setEmail("user1@example.com");
+        user.setPassword("password");
+        user.setName("ユーザー");
+        user = userRepository.save(user);
+
+        TodoForm first = new TodoForm();
+        first.setTitle("先に作ったTODO");
+        first.setDueDate(LocalDate.of(2026, 11, 1));
+        todoService.create(first, user.getId());
+
+        TodoForm second = new TodoForm();
+        second.setTitle("後に作ったTODO");
+        second.setDueDate(LocalDate.of(2026, 11, 1));
+        todoService.create(second, user.getId());
+
+        var todos = todoService.list(user.getId());
+
+        assertEquals(2, todos.size());
+        assertEquals("後に作ったTODO", todos.get(0).getTitle());
+        assertEquals("先に作ったTODO", todos.get(1).getTitle());
+        assertTrue(todos.get(0).getId() > todos.get(1).getId());
+    }
+
+    @Test
+    void 期限なしのTODOは最後に並ぶ() {
+        AppUser user = new AppUser();
+        user.setEmail("user1@example.com");
+        user.setPassword("password");
+        user.setName("ユーザー");
+        user = userRepository.save(user);
+
+        TodoForm dated = new TodoForm();
+        dated.setTitle("期限ありのTODO");
+        dated.setDueDate(LocalDate.of(2026, 11, 1));
+        todoService.create(dated, user.getId());
+
+        TodoForm undated = new TodoForm();
+        undated.setTitle("期限なしのTODO");
+        undated.setDueDate(null);
+        todoService.create(undated, user.getId());
+
+        var todos = todoService.list(user.getId());
+
+        assertEquals(2, todos.size());
+        assertEquals("期限ありのTODO", todos.get(0).getTitle());
+        assertEquals("期限なしのTODO", todos.get(1).getTitle());
+        assertNull(todos.get(1).getDueDate());
+    }
 }
