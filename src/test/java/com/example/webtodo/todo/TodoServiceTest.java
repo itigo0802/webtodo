@@ -448,4 +448,27 @@ public class TodoServiceTest {
         assertEquals("期限なしのTODO", todos.get(1).getTitle());
         assertNull(todos.get(1).getDueDate());
     }
+
+    @Test
+    void 本人のTODOがなければ空の一覧を返す() {
+        AppUser user1 = new AppUser();
+        user1.setEmail("user1@example.com");
+        user1.setPassword("password");
+        user1.setName("ユーザー1");
+        user1 = userRepository.save(user1);
+
+        AppUser user2 = new AppUser();
+        user2.setEmail("user2@example.com");
+        user2.setPassword("password");
+        user2.setName("ユーザー2");
+        user2 = userRepository.save(user2);
+
+        TodoForm form2 = new TodoForm();
+        form2.setTitle("ユーザー2のTODO");
+        todoService.create(form2, user2.getId());
+
+        var todos = todoService.list(user1.getId());
+
+        assertTrue(todos.isEmpty());
+    }
 }
