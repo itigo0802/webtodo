@@ -315,4 +315,39 @@ public class TodoControllerTest {
         verify(todoService).toggle(99L, 1L);
         verify(todoService).get(99L, 1L);
     }
+
+    @Test
+    void htmxの完了切替で未完了の行フラグメントを返す() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        Todo todo = new Todo();
+        ReflectionTestUtils.setField(todo, "id", 99L);
+        todo.setUser(appUser);
+        todo.setTitle("完了切替のテスト");
+        todo.setDone(false);
+
+        when(todoService.get(99L, 1L)).thenReturn(todo);
+
+        mockMvc
+            .perform(
+                post("/todos/99/toggle")
+                    .with(user(principal))
+                    .with(csrf())
+                    .header("HX-Request", "true")
+            )
+            .andExpect(status().isOk())
+            .andExpect(view().name("fragments/todoItem :: todoItem"))
+            .andExpect(model().attribute("todo", todo))
+            .andExpect(xpath("//tr/td/span").string("完了切替のテスト"))
+            .andExpect(xpath("//tr/td/s").doesNotExist());
+
+        verify(todoService).toggle(99L, 1L);
+        verify(todoService).get(99L, 1L);
+    }
 }
