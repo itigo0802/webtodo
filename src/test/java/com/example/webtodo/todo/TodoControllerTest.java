@@ -1,20 +1,28 @@
 package com.example.webtodo.todo;
 
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.is;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 import com.example.webtodo.config.SecurityConfig;
 import com.example.webtodo.user.AppUser;
 import com.example.webtodo.user.AppUserPrincipal;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -52,13 +60,11 @@ public class TodoControllerTest {
 
         AppUserPrincipal principal = new AppUserPrincipal(appUser);
 
-        when(todoService.get(99L, 1L))
-            .thenThrow(new TodoNotFoundException());
+        when(todoService.get(99L, 1L)).thenThrow(new TodoNotFoundException());
 
-        mockMvc.perform(
-            get("/todos/99/edit").with(user(principal))
-        )
-        .andExpect(status().isNotFound());
+        mockMvc
+            .perform(get("/todos/99/edit").with(user(principal)))
+            .andExpect(status().isNotFound());
 
         verify(todoService).get(99L, 1L);
     }
@@ -78,20 +84,235 @@ public class TodoControllerTest {
         todo.setTitle("編集前のタイトル");
         todo.setDescription("編集前の説明");
 
-        when(todoService.get(99L, 1L))
-            .thenReturn(todo);
+        when(todoService.get(99L, 1L)).thenReturn(todo);
 
-        mockMvc.perform(
-            get("/todos/99/edit").with(user(principal))
-        )
-        .andExpect(status().isOk())
-        .andExpect(view().name("todo/form"))
-        .andExpect(model().attribute("todoId", 99L))
-        .andExpect(model().attribute(
-            "todoForm",
-            hasProperty("title", is("編集前のタイトル"))
-        ));
+        mockMvc
+            .perform(get("/todos/99/edit").with(user(principal)))
+            .andExpect(status().isOk())
+            .andExpect(view().name("todo/form"))
+            .andExpect(model().attribute("todoId", 99L))
+            .andExpect(
+                model().attribute(
+                    "todoForm",
+                    hasProperty("title", is("編集前のタイトル"))
+                )
+            );
 
+        verify(todoService).get(99L, 1L);
+    }
+
+    @Test
+    void 他ユーザーのTODOへの編集POSTは404になる() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        doThrow(new TodoNotFoundException())
+            .when(todoService)
+            .update(eq(99L), any(TodoForm.class), eq(1L));
+
+        mockMvc
+            .perform(
+                post("/todos/99/edit")
+                    .with(user(principal))
+                    .with(csrf())
+                    .param("title", "変更後のタイトル")
+            )
+            .andExpect(status().isNotFound());
+
+        verify(todoService).update(eq(99L), any(TodoForm.class), eq(1L));
+    }
+
+    @Test
+    void 本人のTODOへの編集POSTは一覧へリダイレクトされる() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/99/edit")
+                    .with(user(principal))
+                    .with(csrf())
+                    .param("title", "変更後のタイトル")
+            )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/todos"));
+
+        verify(todoService).update(eq(99L), any(TodoForm.class), eq(1L));
+    }
+
+    @Test
+    void 編集POSTでタイトルが空白なら編集画面に戻る() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/99/edit")
+                    .with(user(principal))
+                    .with(csrf())
+                    .param("title", "   ")
+            )
+            .andExpect(status().isOk())
+            .andExpect(view().name("todo/form"))
+            .andExpect(model().attributeHasFieldErrors("todoForm", "title"))
+            .andExpect(model().attribute("todoId", 99L));
+
+        verifyNoInteractions(todoService);
+    }
+
+    @Test
+    void 他ユーザーのTODOへの削除POSTは404になる() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        doThrow(new TodoNotFoundException()).when(todoService).delete(99L, 1L);
+
+        mockMvc
+            .perform(
+                post("/todos/99/delete").with(user(principal)).with(csrf())
+            )
+            .andExpect(status().isNotFound());
+
+        verify(todoService).delete(99L, 1L);
+    }
+
+    @Test
+    void 本人のTODOへの削除POSTは一覧へリダイレクトされる() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/99/delete").with(user(principal)).with(csrf())
+            )
+            .andExpect(status().isSeeOther())
+            .andExpect(redirectedUrl("/todos"));
+
+        verify(todoService).delete(99L, 1L);
+    }
+
+    @Test
+    void htmxの削除POSTは本文なしで200を返す() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/99/delete")
+                    .with(user(principal))
+                    .with(csrf())
+                    .header("HX-Request", true)
+            )
+            .andExpect(status().isOk())
+            .andExpect(content().string(""))
+            .andExpect(header().doesNotExist("Location"));
+
+        verify(todoService).delete(99L, 1L);
+    }
+
+    @Test
+    void 他ユーザーのTODOへの完了切替POSTは404になる() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        doThrow(new TodoNotFoundException()).when(todoService).toggle(99L, 1L);
+
+        mockMvc
+            .perform(
+                post("/todos/99/toggle").with(user(principal)).with(csrf())
+            )
+            .andExpect(status().isNotFound());
+
+        verify(todoService).toggle(99L, 1L);
+    }
+
+    @Test
+    void 本人のTODOへの完了切替POSTは一覧へリダイレクトされる()
+        throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/99/toggle").with(user(principal)).with(csrf())
+            )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/todos"));
+
+        verify(todoService).toggle(99L, 1L);
+    }
+
+    @Test
+    void htmxの完了切替は更新後の行フラグメントを返す() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        Todo todo = new Todo();
+        ReflectionTestUtils.setField(todo, "id", 99L);
+        todo.setUser(appUser);
+        todo.setTitle("完了切替のテスト");
+        todo.setDone(true);
+
+        when(todoService.get(99L, 1L)).thenReturn(todo);
+
+        mockMvc
+            .perform(
+                post("/todos/99/toggle")
+                    .with(user(principal))
+                    .with(csrf())
+                    .header("HX-Request", "true")
+            )
+            .andExpect(status().isOk())
+            .andExpect(view().name("fragments/todoItem :: todoItem"))
+            .andExpect(model().attribute("todo", todo))
+            .andExpect(xpath("//tr/td/s").string("完了切替のテスト"));
+
+        verify(todoService).toggle(99L, 1L);
         verify(todoService).get(99L, 1L);
     }
 }
