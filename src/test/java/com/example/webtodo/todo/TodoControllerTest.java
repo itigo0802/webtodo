@@ -384,4 +384,25 @@ public class TodoControllerTest {
 
         verifyNoInteractions(todoService);
     }
+
+    @Test
+    void CSRFトークンなしの編集POSTは403になる() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/99/delete")
+                    .with(user(principal))
+                    .param("title", "変更後のタイトル")
+            )
+            .andExpect(status().isForbidden());
+
+        verifyNoInteractions(todoService);
+    }
 }
