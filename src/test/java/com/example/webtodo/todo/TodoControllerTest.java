@@ -397,7 +397,7 @@ public class TodoControllerTest {
 
         mockMvc
             .perform(
-                post("/todos/99/delete")
+                post("/todos/99/edit")
                     .with(user(principal))
                     .param("title", "変更後のタイトル")
             )
