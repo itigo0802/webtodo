@@ -516,4 +516,32 @@ public class TodoControllerTest {
 
         verify(todoService).list(1L);
     }
+
+    @Test
+    void TODOがある場合に一覧へタイトルが表示される() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        Todo todo = new Todo();
+        ReflectionTestUtils.setField(todo, "id", 99L);
+        todo.setUser(appUser);
+        todo.setTitle("一覧表示のテスト");
+        todo.setDone(false);
+
+        when(todoService.list(1L)).thenReturn(java.util.List.of(todo));
+
+        mockMvc
+            .perform(get("/todos").with(user(principal)))
+            .andExpect(status().isOk())
+            .andExpect(view().name("todo/list"))
+            .andExpect(model().attribute("todos", java.util.List.of(todo)))
+            .andExpect(content().string(containsString("一覧表示のテスト")));
+
+        verify(todoService).list(1L);
+    }
 }
