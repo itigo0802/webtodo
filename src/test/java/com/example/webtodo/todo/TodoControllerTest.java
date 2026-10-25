@@ -493,4 +493,26 @@ public class TodoControllerTest {
 
         verifyNoInteractions(todoService);
     }
+
+    @Test
+    void TODOが空でも一覧画面を表示できる() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        when(todoService.list(1L)).thenReturn(java.util.List.of());
+
+        mockMvc
+            .perform(get("/todos/new").with(user(principal)))
+            .andExpect(status().isOk())
+            .andExpect(view().name("todo/list"))
+            .andExpect(model().attribute("todos", java.util.List.of()))
+            .andExpect(xpath("//tbody/tr/td").string("TODOがありません"));
+
+        verify(todoService).list(1L);
+    }
 }
