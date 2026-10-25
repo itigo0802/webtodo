@@ -507,7 +507,7 @@ public class TodoControllerTest {
         when(todoService.list(1L)).thenReturn(java.util.List.of());
 
         mockMvc
-            .perform(get("/todos/new").with(user(principal)))
+            .perform(get("/todos").with(user(principal)))
             .andExpect(status().isOk())
             .andExpect(view().name("todo/list"))
             .andExpect(model().attribute("todos", java.util.List.of()))
