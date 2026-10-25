@@ -473,4 +473,24 @@ public class TodoControllerTest {
 
         verifyNoInteractions(todoService);
     }
+
+    @Test
+    void ログイン済みなら追加画面を表示できる() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(post("/todos/new").with(user(principal)))
+            .andExpect(status().isOk())
+            .andExpect(view().name("todo/form"))
+            .andExpect(model().attributeExists("todoForm"))
+            .andExpect(model().attributeHasNoErrors("todoForm"));
+
+        verifyNoInteractions(todoService);
+    }
 }
