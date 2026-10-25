@@ -426,4 +426,27 @@ public class TodoControllerTest {
 
         verifyNoInteractions(todoService);
     }
+
+    @Test
+    void 本人のTODOへの追加POSTは一覧へリダイレクトされる() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/new")
+                    .with(user(principal))
+                    .with(csrf())
+                    .param("title", "変更後のタイトル")
+            )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/todos"));
+
+        verify(todoService).create(any(TodoForm.class), eq(1L));
+    }
 }
