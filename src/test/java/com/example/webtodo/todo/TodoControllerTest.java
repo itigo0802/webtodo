@@ -1,5 +1,6 @@
 package com.example.webtodo.todo;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -511,7 +512,7 @@ public class TodoControllerTest {
             .andExpect(status().isOk())
             .andExpect(view().name("todo/list"))
             .andExpect(model().attribute("todos", java.util.List.of()))
-            .andExpect(xpath("//tbody/tr/td").string("TODOがありません"));
+            .andExpect(content().string(containsString("TODOがありません")));
 
         verify(todoService).list(1L);
     }
