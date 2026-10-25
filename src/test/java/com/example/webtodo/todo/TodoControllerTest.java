@@ -485,7 +485,7 @@ public class TodoControllerTest {
         AppUserPrincipal principal = new AppUserPrincipal(appUser);
 
         mockMvc
-            .perform(post("/todos/new").with(user(principal)))
+            .perform(get("/todos/new").with(user(principal)))
             .andExpect(status().isOk())
             .andExpect(view().name("todo/form"))
             .andExpect(model().attributeExists("todoForm"))
