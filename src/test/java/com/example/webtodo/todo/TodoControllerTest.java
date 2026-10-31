@@ -3,6 +3,7 @@ package com.example.webtodo.todo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -25,6 +26,7 @@ import com.example.webtodo.config.SecurityConfig;
 import com.example.webtodo.user.AppUser;
 import com.example.webtodo.user.AppUserPrincipal;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -567,5 +569,34 @@ public class TodoControllerTest {
             .andExpect(model().attributeHasFieldErrors("todoForm", "title"));
 
         verifyNoInteractions(todoService);
+    }
+
+    @Test
+    void 追加POSTでタイトルがちょうど100文字なら一覧へリダイレクトされる()
+        throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/new")
+                    .with(user(principal))
+                    .with(csrf())
+                    .param("title", "あ".repeat(100))
+            )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/todos"));
+
+        ArgumentCaptor<TodoForm> captor = ArgumentCaptor.forClass(
+            TodoForm.class
+        );
+
+        verify(todoService).create(captor.capture(), eq(1L));
+        assertEquals("あ".repeat(100), captor.getValue().getTitle());
     }
 }
