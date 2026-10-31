@@ -599,4 +599,31 @@ public class TodoControllerTest {
         verify(todoService).create(captor.capture(), eq(1L));
         assertEquals("あ".repeat(100), captor.getValue().getTitle());
     }
+
+    @Test
+    void 追加POSTで説明が1001文字なら追加画面に戻る() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/new")
+                    .with(user(principal))
+                    .with(csrf())
+                    .param("title", "説明の境界値テスト")
+                    .param("description", "あ".repeat(1001))
+            )
+            .andExpect(status().isOk())
+            .andExpect(view().name("todo/form"))
+            .andExpect(
+                model().attributeHasFieldErrors("todoForm", "description")
+            );
+
+        verifyNoInteractions(todoService);
+    }
 }
