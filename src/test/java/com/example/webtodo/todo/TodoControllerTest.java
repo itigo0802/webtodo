@@ -660,4 +660,35 @@ public class TodoControllerTest {
         verify(todoService).create(captor.capture(), eq(1L));
         assertEquals("あ".repeat(1000), captor.getValue().getDescription());
     }
+
+    @Test
+    void 追加POSTで期限日の形式が不正なら追加画面に戻る() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/new")
+                    .with(user(principal))
+                    .with(csrf())
+                    .param("title", "期限日のテスト")
+                    .param("dueDate", "2026-13-45")
+            )
+            .andExpect(status().isOk())
+            .andExpect(view().name("todo/form"))
+            .andExpect(
+                model().attributeHasFieldErrorCode(
+                    "todoForm",
+                    "dueDate",
+                    containsString("typeMismatch")
+                )
+            );
+
+        verifyNoInteractions(todoService);
+    }
 }
