@@ -621,7 +621,11 @@ public class TodoControllerTest {
             .andExpect(status().isOk())
             .andExpect(view().name("todo/form"))
             .andExpect(
-                model().attributeHasFieldErrors("todoForm", "description")
+                model().attributeHasFieldErrorCode(
+                    "todoForm",
+                    "description",
+                    "Size"
+                )
             );
 
         verifyNoInteractions(todoService);
