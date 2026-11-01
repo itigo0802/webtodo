@@ -698,7 +698,7 @@ public class TodoControllerTest {
         throws Exception {
         AppUser appUser = new AppUser();
         ReflectionTestUtils.setField(appUser, "id", 1L);
-        appUser.setEmail("user1.example.com");
+        appUser.setEmail("user1@example.com");
         appUser.setPassword("unused");
         appUser.setName("ユーザー1");
 
