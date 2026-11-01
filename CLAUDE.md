@@ -84,8 +84,8 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
   - [x] `TodoTest`: `Todo#isOverdue` の4ケース
   - [x] `TodoServiceTest`: 作成・編集時の空白だけの説明を null で保存、本人のTODOの取得・削除・編集、本人の完了切替(未完了→完了、完了→未完了)、他ユーザーのTODOの取得・削除・編集・完了切替の拒否、一覧の所有者絞り込み・期限日の昇順・同じ期限日のID降順・期限なしが最後になること、他ユーザーのTODOだけが存在する場合に本人の一覧が空になること(計16ケース。ホスト側の `TodoServiceTest` 成功をユーザー確認済み)
   - [ ] Service / Repository: 必要に応じて残りの境界値・異常系テストを追加
-  - [x] `TodoControllerTest`: 未ログイン時の一覧からログイン画面への転送、編集GETの404と正常表示、編集POSTの404・正常時の302リダイレクト・空白タイトルの入力エラー(フォーム再表示・todoId保持・Service未呼び出し)、削除POSTの404・通常時の303リダイレクト・htmx時の200/本文なし/Locationなし、完了切替POSTの404・通常時の302リダイレクト・htmx時の行フラグメントと完了済みタイトルの `<s>` 表示・未完了タイトルの `<span>` 表示と `<s>` 不在、追加・編集・削除・完了切替POSTのCSRFトークンなしでの403とService未呼び出し、追加POSTの正常時の302リダイレクトと全角スペースだけのタイトルの入力エラー、追加GETの正常表示、空一覧のメッセージとTODO入り一覧のタイトル表示、追加POSTのタイトル上限の境界(101文字の拒否と `todoForm.title` のフィールドエラー・ちょうど100文字の受け付けと302リダイレクト)、説明上限の境界(1001文字の拒否と `Size` エラーコード・ちょうど1000文字の受け付けと302リダイレクト)。対象操作のServiceへのユーザーID・TODO ID受け渡しも検証(計26ケース。エージェント側で実行成功)
-  - [ ] Controller: 残りの入力境界値(編集POST側の上限、`dueDate` の形式不正)、未ログイン時の一覧以外のエンドポイントの転送など
+  - [x] `TodoControllerTest`: 未ログイン時の一覧からログイン画面への転送、編集GETの404と正常表示、編集POSTの404・正常時の302リダイレクト・空白タイトルの入力エラー(フォーム再表示・todoId保持・Service未呼び出し)、削除POSTの404・通常時の303リダイレクト・htmx時の200/本文なし/Locationなし、完了切替POSTの404・通常時の302リダイレクト・htmx時の行フラグメントと完了済みタイトルの `<s>` 表示・未完了タイトルの `<span>` 表示と `<s>` 不在、追加・編集・削除・完了切替POSTのCSRFトークンなしでの403とService未呼び出し、追加POSTの正常時の302リダイレクトと全角スペースだけのタイトルの入力エラー、追加GETの正常表示、空一覧のメッセージとTODO入り一覧のタイトル表示、追加POSTのタイトル上限の境界(101文字の拒否と `todoForm.title` のフィールドエラー・ちょうど100文字の受け付けと302リダイレクト)、説明上限の境界(1001文字の拒否と `Size` エラーコード・ちょうど1000文字の受け付けと302リダイレクト)、追加POSTの期限日の形式不正(`typeMismatch` のフィールドエラーでフォーム再表示)と正常形式が `LocalDate` としてServiceへ渡ること、編集画面のtitle・dueDate・descriptionの復元、一覧のチェックボックスへのhtmxトグルURLとCSRFヘッダ(`hx-headers` / `X-CSRF-TOKEN`)の描画。対象操作のServiceへのユーザーID・TODO ID受け渡しも検証(計29ケース。エージェント側で実行成功)
+  - [ ] Controller: 編集POST側の入力境界値(追加側と同じ `TodoForm` の制約を通るため優先度は低い)、未ログイン時の一覧以外のエンドポイントの転送(GETは302で `/login`、POSTはCSRFフィルタが先に働いて403になるので「未ログインだから403」とは言い切れない)、一覧の期限切れ強調の否定的な側(期限が昨日でも完了済みなら `overdue` を出さない)
 
 ### 未解決・メモ
 
@@ -93,13 +93,13 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - 独自CSSは `static/css/app.css`。`fragments/head.html` でPico.cssの後ろに読み込む(読み込みを足さないと効かない)
 - 期限切れの単体テスト(`Todo#isOverdue`)は実装・実行確認済み。固定日を基準に「昨日・未完了」「今日・未完了」「昨日・完了済み」「`dueDate` が null」の4ケースを検証
 - `TodoServiceTest` は `@DataJpaTest` + `@Import({TodoService.class, TestcontainersConfiguration.class})` で既存のPostgreSQLコンテナ設定を利用する。別パッケージから参照するため `TestcontainersConfiguration` は public に変更済み
-- 次回は `TodoControllerTest` の「追加POSTで期限日の形式が不正なら追加画面に戻る」から再開する(提案のみ・未実装)。認証・CSRF付きで `.param("title", "期限日のテスト")` と `.param("dueDate", "2026-13-45")` をPOSTし、200・`todo/form`・`todoForm.dueDate` のフィールドエラー・Service未呼び出しを検証する。Bean Validation(@NotBlank/@Size)とは別系統の型変換エラー(BindException)が対象で、ハンドラの `result.hasErrors()` が処理しなければ500になる経路を押さえる
+- 次回は `TodoControllerTest` の「一覧で期限が昨日でも完了済みなら `overdue` を出さない」から再開する(提案のみ・未実装)。`done=true`・`dueDate=LocalDate.now().minusDays(1)` のTODOを `list(1L)` に返し、認証付き `GET /todos` で200・`todo/list`・`content().string(not(containsString("overdue")))`・`verify(todoService).list(1L)` を検証する(Hamcrestの `not` を追加importする)。今回足した「期限切れの未完了TODOが `overdue` で描画される」と対になり、`th:classappend` が常に `overdue` を書く実装や、完了済みにも付ける実装を落とせる
 - MockMvcの `xpath` はXMLパーサーを使うため、`<!doctype html>` から始まる一覧ページ全体の検証では解析エラーになる。空一覧メッセージや一覧タイトルの本文検証は `content().string(containsString(...))` を使用する(Hamcrestの `containsString` をstatic import)。これは文字列の存在確認でありDOM位置の証明ではない。行フラグメントの既存XPath検証は実行成功済み
 - 一覧の期限日昇順テストは「遅い・早い・中間」の順に3件作成し、「早い・中間・遅い」の順で返ることを検証する。2件を遅い・早いの順で作成するだけでは、ID降順のみの誤った実装でも通るため、3件で区別する
 - 本人の編集・完了切替と、編集拒否・編集時の説明の空白→null変換は、`EntityManager.flush()` → `clear()` 後にDBから再取得して検証する。`flush()` はコミットではなく、`@DataJpaTest` の終了時にはロールバックされる
 - 検証環境: 現在のエージェント作業先はCua VM内の `/home/cua/webtodo`。ホストの `/home/itigo0802/git/webtodo` とは別チェックアウトで自動同期されない。ユーザーが別チェックアウトからpushした場合はVM側で `git pull --ff-only` で取り込む(VM内のチェックアウトで直接コミット・pushされる場合もあり、そのときは取り込み不要)
 - 受け入れ側の境界値テストで `verify(todoService).create(any(TodoForm.class), eq(1L))` だけを使うと、「呼ばれた」ことしか検証できず引数の中身は見ていない。`ArgumentCaptor<TodoForm>` で捕まえて `assertEquals("あ".repeat(100), captor.getValue().getTitle())` のように値の保持まで確認する。`captor.capture()` はmatcherなので、同じ呼び出しの他の引数も `eq(1L)` のようにmatcherに揃える(生値を混ぜると `InvalidUseOfMatchersException`)
-- 最新の全体検証: VM側で `./gradlew test --rerun-tasks` を実行し、47件すべて成功(失敗・エラー・スキップなし)。XML結果の内訳は `TodoControllerTest` 26件、`TodoServiceTest` 16件、`TodoTest` 4件、`WebtodoApplicationTests` 1件。Testcontainersを使うDBテストも今回は実行成功しており、以前のDocker環境エラーによる全体未確認状態は解消済み
+- 最新の全体検証: VM側で `./gradlew test --rerun-tasks` を実行し、50件すべて成功(失敗・エラー・スキップなし)。XML結果の内訳は `TodoControllerTest` 29件、`TodoServiceTest` 16件、`TodoTest` 4件、`WebtodoApplicationTests` 1件。Testcontainersを使うDBテストも実行成功している。個別実行は `./gradlew test --tests com.example.webtodo.todo.TodoControllerTest --rerun-tasks` で、XMLを読んで件数を確認する(BUILD SUCCESSFULだけでは件数は分からない)
 - Controllerテストは `@WebMvcTest(TodoController.class)` + `@Import(SecurityConfig.class)`、Serviceは `@MockitoBean` で置き換える。未ログインの転送先は相対URL `/login`。`AppUser` のIDにはsetterがないため `ReflectionTestUtils.setField` で設定し、実際の `AppUserPrincipal` を `.with(user(principal))` で渡す。ControllerテストはServiceの例外のHTTP変換を検証するもので、実際のDB上の所有者判定はServiceテストが担当する
 - 一覧のチェックボックスは有効化済み。`hx:post` + `hx-trigger="change"` + `hx-target="closest tr"` + `hx-swap="outerHTML"` で行を差し替える。テンプレート名は小文字の `fragments/todoItem.html`
 - 一覧・追加画面は `layout(~{::main})` で共通レイアウトを利用する。渡す側の `<main>` に `class="container"` を付ける(`th:replace` でレイアウト側の `<main>` は置換される)
@@ -111,3 +111,8 @@ Web上で動くTODOアプリ (webtodo)。ユーザー登録/ログイン、TODO�
 - 「他ユーザーのTODOは404」のControllerテストは編集GET・編集POST・削除・完了切替で実装・実行確認済み。これらはモックServiceの例外からHTTP 404への変換とログインユーザーIDの受け渡しを検証する。実際の所有者制限はDBを使うServiceテストが担当し、Controllerテスト単独ではその証明にはならない
 - `description` の空文字は Service で null に正規化する(`TodoService.normalizeDescriptionBlank`)
 - 登録時の同時実行による `UNIQUE` 制約違反(`DataIntegrityViolationException`)の変換は未対応(任意)
+- 型変換エラーの判定: `attributeHasFieldErrorCode` は `FieldError#getCode()` と完全一致で比較する(spring-test 7.0.9 のバイトコードで確認)。型変換エラーの先頭コードは `typeMismatch.todoForm.dueDate` のように長くなるため、`containsString("typeMismatch")` を渡すMatcher版を使う。`@NotBlank`/`@Size` 由来のコード(`Size` など)とは別系統であることも同時に示せる
+- htmxのCSRF自動付与の実体: `htmx-spring-boot-thymeleaf:5.1.0` の `HtmxCsrfAttributeProcessor` が `_csrf` リクエスト属性から `CsrfToken#getHeaderName()` と `#getToken()` を取り、`hx-headers` を描画する(jarのバイトコードで確認)。`th:action` が描画する隠し `_csrf` 入力とは別経路なので、一覧ページのHTMLに `X-CSRF-TOKEN` が出ていればそれは `hx:post` の描画によるもの。この描画はControllerテストで自動検証済みになり、ブラウザのNetworkでの手動確認は不要になった
+- 一覧ページのHTMLで `overdue` の文字列が出るのは `todoItem.html` の `th:classappend` 1箇所だけ(`grep` で確認済み)。`app.css` は外部リンクなのでHTML本文には出てこない。よって `containsString("overdue")` は該当行の描画を特定するのに十分
+- VMのgit操作: VMのチェックアウトは `gh auth git-credential` をhelperに使い、`git push` も `git fetch origin` も通る。ただし `git fetch --all` は `entire` リモートがOSキーリング(`org.freedesktop.secrets`)を要求して失敗するので、GitHubだけ取り込むときは `git fetch origin` を使う
+- Controllerテストのフィクスチャのemailは `user1@example.com` に揃える。`AppUser`/`AppUserPrincipal` 側に検証が入ると、値の揺れが理由の分かりにくい失敗になる
