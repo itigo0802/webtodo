@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.cglib.core.ReflectUtils;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -737,5 +738,36 @@ public class TodoControllerTest {
             LocalDate.of(2026, 11, 30),
             captor.getValue().getDueDate()
         );
+    }
+
+    @Test
+    void 一覧のチェックボックスにhtmxのトグルURLとCSRFヘッダが描画される()
+        throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        Todo todo = new Todo();
+        ReflectionTestUtils.setField(todo, "id", 99L);
+        todo.setUser(appUser);
+        todo.setTitle("htmx配線のテスト");
+        todo.setDone(false);
+
+        when(todoService.list(1L));
+
+        mockMvc
+            .perform(get("/todos").with(user(principal)).with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(
+                content().string(containsString("hx-post=\"todos/99/toggle\""))
+            )
+            .andExpect(content().string(containsString("hx-headers")))
+            .andExpect(content().string(containsString("X-CSRF-TOKEN")));
+
+        verify(todoService).list(1L);
     }
 }
