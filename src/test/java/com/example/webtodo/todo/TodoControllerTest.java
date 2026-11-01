@@ -25,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.webtodo.config.SecurityConfig;
 import com.example.webtodo.user.AppUser;
 import com.example.webtodo.user.AppUserPrincipal;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -690,5 +691,38 @@ public class TodoControllerTest {
             );
 
         verifyNoInteractions(todoService);
+    }
+
+    @Test
+    void 追加POSTで期限日が正しい形式ならServiceへその日付が渡る()
+        throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1.example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        mockMvc
+            .perform(
+                post("/todos/new")
+                    .with(user(principal))
+                    .with(csrf())
+                    .param("title", "期限日のテスト")
+                    .param("dueDate", "2026-11-30")
+            )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/todos"));
+
+        ArgumentCaptor<TodoForm> captor = ArgumentCaptor.forClass(
+            TodoForm.class
+        );
+
+        verify(todoService).create(captor.capture(), eq(1L));
+        assertEquals(
+            LocalDate.of(2026, 11, 30),
+            captor.getValue().getDueDate()
+        );
     }
 }
