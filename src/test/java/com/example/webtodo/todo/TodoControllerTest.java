@@ -74,7 +74,7 @@ public class TodoControllerTest {
     }
 
     @Test
-    void 本人のTODOの編集画面を表示できる() throws Exception {
+    void 本人のTODOの編集画面に既存の値が復元される() throws Exception {
         AppUser appUser = new AppUser();
         ReflectionTestUtils.setField(appUser, "id", 1L);
         appUser.setEmail("user1@example.com");
@@ -87,6 +87,7 @@ public class TodoControllerTest {
         todo.setUser(appUser);
         todo.setTitle("編集前のタイトル");
         todo.setDescription("編集前の説明");
+        todo.setDueDate(LocalDate.of(2026, 12, 31));
 
         when(todoService.get(99L, 1L)).thenReturn(todo);
 
@@ -99,6 +100,12 @@ public class TodoControllerTest {
                 model().attribute(
                     "todoForm",
                     hasProperty("title", is("編集前のタイトル"))
+                )
+            )
+            .andExpect(
+                model().attribute(
+                    "todoForm",
+                    hasProperty("dueDate", is(LocalDate.of(2026, 12, 31)))
                 )
             );
 
