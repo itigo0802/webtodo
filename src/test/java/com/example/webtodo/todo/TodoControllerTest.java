@@ -30,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.cglib.core.ReflectUtils;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -757,13 +756,13 @@ public class TodoControllerTest {
         todo.setTitle("htmx配線のテスト");
         todo.setDone(false);
 
-        when(todoService.list(1L));
+        when(todoService.list(1L)).thenReturn(java.util.List.of(todo));
 
         mockMvc
             .perform(get("/todos").with(user(principal)).with(csrf()))
             .andExpect(status().isOk())
             .andExpect(
-                content().string(containsString("hx-post=\"todos/99/toggle\""))
+                content().string(containsString("hx-post=\"/todos/99/toggle\""))
             )
             .andExpect(content().string(containsString("hx-headers")))
             .andExpect(content().string(containsString("X-CSRF-TOKEN")));
