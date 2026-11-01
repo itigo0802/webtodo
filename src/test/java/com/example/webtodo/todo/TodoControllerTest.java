@@ -105,6 +105,12 @@ public class TodoControllerTest {
             .andExpect(
                 model().attribute(
                     "todoForm",
+                    hasProperty("description", is("編集前の説明"))
+                )
+            )
+            .andExpect(
+                model().attribute(
+                    "todoForm",
                     hasProperty("dueDate", is(LocalDate.of(2026, 12, 31)))
                 )
             );
