@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+import static org.hamcrest.Matchers.not;
 
 import com.example.webtodo.config.SecurityConfig;
 import com.example.webtodo.user.AppUser;
@@ -585,6 +586,34 @@ public class TodoControllerTest {
             .andExpect(status().isOk())
             .andExpect(view().name("todo/list"))
             .andExpect(content().string(containsString("overdue")));
+
+        verify(todoService).list(1L);
+    }
+
+    @Test
+    void 一覧で期限が昨日でも完了済みなら期限切れとして描画されない() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        Todo todo = new Todo();
+        ReflectionTestUtils.setField(todo, "id", 99L);
+        todo.setUser(appUser);
+        todo.setTitle("完了済みのテスト");
+        todo.setDone(true);
+        todo.setDueDate(LocalDate.now().minusDays(1));
+
+        when(todoService.list(1L)).thenReturn(java.util.List.of(todo));
+
+        mockMvc
+            .perform(get("/todos").with(user(principal)))
+            .andExpect(status().isOk())
+            .andExpect(view().name("todo/list"))
+            .andExpect(content().string(not(containsString("overdue"))));
 
         verify(todoService).list(1L);
     }
