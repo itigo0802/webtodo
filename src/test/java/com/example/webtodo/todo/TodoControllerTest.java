@@ -562,6 +562,34 @@ public class TodoControllerTest {
     }
 
     @Test
+    void 一覧で期限が昨日の未完了TODOは期限切れとして描画される() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        Todo todo = new Todo();
+        ReflectionTestUtils.setField(todo, "id", 99L);
+        todo.setUser(appUser);
+        todo.setTitle("期限切れ表示のテスト");
+        todo.setDone(false);
+        todo.setDueDate(LocalDate.now().minusDays(1));
+
+        when(todoService.list(1L)).thenReturn(java.util.List.of(todo));
+
+        mockMvc
+            .perform(get("/todos").with(user(principal)))
+            .andExpect(status().isOk())
+            .andExpect(view().name("todo/list"))
+            .andExpect(content().string(containsString("overdue")));
+
+        verify(todoService).list(1L);
+    }
+
+    @Test
     void 追加POSTでタイトルが101文字なら追加画面に戻る() throws Exception {
         AppUser appUser = new AppUser();
         ReflectionTestUtils.setField(appUser, "id", 1L);
