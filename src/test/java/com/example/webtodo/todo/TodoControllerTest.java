@@ -619,6 +619,37 @@ public class TodoControllerTest {
     }
 
     @Test
+    void 一覧の削除フォームに通常送信のactionとhtmxの確認が描画される() throws Exception {
+        AppUser appUser = new AppUser();
+        ReflectionTestUtils.setField(appUser, "id", 1L);
+        appUser.setEmail("user1@example.com");
+        appUser.setPassword("unused");
+        appUser.setName("ユーザー1");
+
+        AppUserPrincipal principal = new AppUserPrincipal(appUser);
+
+        Todo todo = new Todo();
+        ReflectionTestUtils.setField(todo, "id", 99L);
+        todo.setUser(appUser);
+        todo.setTitle("削除フォームのテスト");
+        todo.setDone(false);
+
+        when(todoService.list(1L)).thenReturn(java.util.List.of(todo));
+
+        mockMvc
+            .perform(get("/todos").with(user(principal)))
+            .andExpect(status().isOk())
+            .andExpect(
+                content().string(containsString("action=\"/todos/99/delete\""))
+            )
+            .andExpect(
+                content().string(containsString("hx-confirm=\"削除しますか?\""))
+            );
+
+        verify(todoService).list(1L);
+    }
+
+    @Test
     void 追加POSTでタイトルが101文字なら追加画面に戻る() throws Exception {
         AppUser appUser = new AppUser();
         ReflectionTestUtils.setField(appUser, "id", 1L);
